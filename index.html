@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>柒樂部 | 專屬短網址 reURL</title>
+    <meta name="description" content="提供在地住戶推薦的桃園龜山 A7 重劃區生活資訊。">
+    <!-- 加入預先連線，加速 GAS API 讀取速度 -->
+    <link rel="preconnect" href="https://script.google.com">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            /* 日系雜誌/手帳的柔和網格背景 */
+            background-color: #FFFDF9;
+            background-image: 
+                linear-gradient(#F0EAE1 1px, transparent 1px),
+                linear-gradient(90deg, #F0EAE1 1px, transparent 1px);
+            background-size: 24px 24px;
+            overflow-x: hidden; 
+            color: #5C5454;
+        }
+
+        .font-serif { font-family: 'Noto Serif TC', serif; }
+
+        .shape { position: absolute; z-index: -1; opacity: 0.6; animation: float 10s ease-in-out infinite; }
+        .shape-circle { width: 180px; height: 180px; border-radius: 50%; background: #FFC2D1; top: 5%; left: -2%; filter: blur(8px); } 
+        .shape-arch { width: 120px; height: 160px; border-radius: 60px 60px 0 0; background: #E2CBF7; bottom: 10%; right: 2%; animation-delay: 2s; transform: rotate(15deg); filter: blur(5px); } 
+        .shape-pill { width: 80px; height: 160px; border-radius: 50px; background: #BDE0FE; top: 40%; right: -10px; transform: rotate(-25deg); animation-delay: 4s; filter: blur(6px); } 
+        .shape-square { width: 110px; height: 110px; border-radius: 15px; background: #FFF1AC; bottom: -10px; left: 8%; transform: rotate(-10deg); animation-delay: 1.5s; filter: blur(5px); } 
+
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(5deg); } }
+
+        .magazine-card {
+            background: #FFFFFF;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px -10px rgba(226, 203, 247, 0.2); 
+            position: relative;
+            border: 1px solid #F0EAE1;
+        }
+        
+        .washi-tape {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%) rotate(-2deg);
+            width: 140px; height: 32px; background: rgba(255, 194, 209, 0.85);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 10;
+        }
+        .washi-tape::after { content: ''; position: absolute; top: 0; right: -8px; width: 16px; height: 100%; background: repeating-linear-gradient(45deg, transparent, transparent 2px, #FFFFFF 2px, #FFFFFF 4px); opacity: 0.5; }
+        .washi-tape::before { content: ''; position: absolute; top: 0; left: -8px; width: 16px; height: 100%; background: repeating-linear-gradient(-45deg, transparent, transparent 2px, #FFFFFF 2px, #FFFFFF 4px); opacity: 0.5; }
+
+        .input-magazine { background: #FFFDF9; border: 2px dashed #E2CBF7; transition: all 0.3s ease; }
+        .input-magazine:focus { border-color: #BDE0FE; border-style: solid; background: #FFFFFF; box-shadow: 4px 4px 0 #BDE0FE; }
+
+        .btn-magazine { background: #5C5454; color: #FFFDF9; transition: all 0.3s ease; position: relative; z-index: 1; }
+        .btn-magazine::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFC2D1; z-index: -1; transition: transform 0.3s ease; transform-origin: bottom right; transform: scale(1); border-radius: inherit; }
+        .btn-magazine:hover { color: #5C5454; border: 2px solid #5C5454; }
+        .btn-magazine:hover::before { transform: scale(1.05) translate(-4px, -4px); }
+        .btn-magazine:active { transform: translateY(2px); }
+
+        .history-item { background: #FFFFFF; border: 1px solid #F0EAE1; border-bottom: 3px solid #FFF1AC; transition: all 0.2s ease; }
+        .history-item:hover { transform: translateY(-2px) rotate(1deg); border-bottom-color: #BDE0FE; }
+
+        .fade-in { animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 簡約連續漸層光軸 (前進感) */
+        @keyframes gradientSweep { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
+        .animate-gradient-sweep { animation: gradientSweep 2s linear infinite; }
+        
+        /* 優雅呼吸燈縮放 */
+        @keyframes pulseSoft { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
+        .animate-pulse-soft { animation: pulseSoft 2s ease-in-out infinite; }
+
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-12 px-4 relative">
+
+    <div class="shape shape-circle"></div>
+    <div class="shape shape-arch"></div>
+    <div class="shape shape-pill"></div>
+    <div class="shape shape-square"></div>
+
+    <!-- 1. 產生器 UI -->
+    <main id="generatorUI" class="w-full max-w-lg z-10 hidden flex-col gap-8 my-auto">
+        <div class="magazine-card mt-4">
+            <div class="washi-tape"></div>
+            
+            <div class="p-8 sm:p-10">
+                <div class="flex justify-between items-end border-b-2 border-dashed border-[#F0EAE1] pb-5 mb-8">
+                    <div>
+                        <p class="font-serif text-[#FFC2D1] font-bold text-xs tracking-[0.2em] uppercase mb-1">A7club / Url Shortener</p>
+                        <h1 class="text-4xl font-serif font-black text-[#5C5454] tracking-widest">柒樂部</h1>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-3xl">🎀</span>
+                        <p class="text-[10px] text-[#A69F98] tracking-widest font-serif mt-1">KAWAII URL</p>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-[#5C5454] font-serif tracking-wider"><span class="text-[#BDE0FE] mr-1">●</span>原始長網址</label>
+                        <input type="url" id="longUrl" placeholder="https://..." class="input-magazine w-full px-5 py-4 rounded-xl outline-none font-medium text-sm text-[#5C5454]">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-[#5C5454] font-serif tracking-wider"><span class="text-[#FFF1AC] mr-1">●</span>專屬小尾巴 (選填)</label>
+                        <input type="text" id="customTag" placeholder="my-cute-link" class="input-magazine w-full px-5 py-4 rounded-xl outline-none font-medium text-sm text-[#5C5454]">
+                    </div>
+
+                    <p id="errorMsg" class="hidden text-[#FFC2D1] text-sm font-bold mt-1"></p>
+
+                    <button id="submitBtn" class="btn-magazine w-full py-4 rounded-xl text-lg font-serif font-black tracking-widest flex justify-center items-center gap-2 mt-6 border-2 border-transparent">
+                        <span id="btnText">製作專屬通行證 🪄</span>
+                    </button>
+                </div>
+
+                <div id="resultArea" class="hidden mt-8 pt-6 border-t-2 border-dashed border-[#F0EAE1] fade-in">
+                    <p class="text-sm font-bold text-[#5C5454] mb-3 font-serif"><span class="highlight-blue">🧸 網址製作完成！</span></p>
+                    <div class="flex items-center gap-2 bg-[#FFFDF9] p-2 rounded-xl border border-[#F0EAE1]">
+                        <input type="text" id="shortUrl" readonly class="w-full bg-transparent border-none outline-none text-[#5C5454] px-3 text-sm font-bold font-serif">
+                        <button id="copyBtn" class="bg-[#E2CBF7] hover:bg-[#d4b5f2] px-6 py-2 rounded-lg text-sm font-bold transition-colors text-white shadow-sm">複製</button>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-4 flex justify-center opacity-40">
+                    <div class="w-32 h-6 border-x-4 border-[#5C5454] flex justify-between px-1">
+                        <div class="w-1 h-full bg-[#5C5454]"></div><div class="w-0.5 h-full bg-[#5C5454]"></div><div class="w-2 h-full bg-[#5C5454]"></div><div class="w-1 h-full bg-[#5C5454]"></div><div class="w-0.5 h-full bg-[#5C5454]"></div><div class="w-1 h-full bg-[#5C5454]"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="historyArea" class="magazine-card p-6 sm:p-8 hidden fade-in">
+            <h2 class="text-lg font-black text-[#5C5454] font-serif mb-5 flex items-center justify-between border-b-2 border-[#FFF1AC] pb-2 inline-flex w-full">
+                <span>🎫 管理員通行證列表</span>
+                <button id="refreshStatsBtn" class="text-xs bg-white border border-[#F0EAE1] hover:bg-[#FFFDF9] text-[#5C5454] px-3 py-1.5 rounded-lg transition-all font-bold flex items-center gap-1 shadow-sm">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    更新
+                </button>
+            </h2>
+            <div id="historyList" class="space-y-4 max-h-[300px] overflow-y-auto pr-2"></div>
+            <div id="emptyHistory" class="text-center py-8 text-[#A69F98] text-sm font-bold font-serif">尚未收藏任何網址哦 🫧</div>
+        </div>
+    </main>
+
+    <!-- 2. 導轉中 UI (極簡乾淨版，加入前進感) -->
+    <div id="redirectUI" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-[#FFFDF9]/95 backdrop-blur-md transition-all duration-500">
+        <div class="text-center fade-in w-full max-w-xs px-6 relative z-10">
+            
+            <!-- 簡約紙飛機/指南針圖示 -->
+            <div class="flex justify-center mb-8">
+                <!-- 將原本帶有紫色的陰影與邊框，改為低飽和的日系灰階 -->
+                <div class="relative w-20 h-20 bg-[#FFFDF9] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(92,84,84,0.06)] border border-[#EBE6E0]">
+                    <!-- 旋轉的柔和灰階光環 -->
+                    <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[#A69F98] border-r-[#EAE3D9] animate-spin" style="animation-duration: 1.8s;"></div>
+                    <!-- 中心紙飛機圖示 (無印風低飽和灰) -->
+                    <svg class="w-8 h-8 text-[#8C857E] animate-pulse-soft ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                </div>
+            </div>
+            
+            <h2 class="text-xl font-black tracking-widest text-[#5C5454] font-serif mb-3">前往目的地</h2>
+            
+            <!-- 優雅的連續漸層進度條 (前進感) -->
+            <div class="w-full bg-[#F0EAE1]/50 rounded-full h-1.5 mb-5 overflow-hidden">
+                <div class="h-full w-full rounded-full bg-gradient-to-r from-[#BDE0FE] via-[#FFC2D1] to-[#E2CBF7] animate-gradient-sweep" style="background-size: 200% auto;"></div>
+            </div>
+
+            <!-- 動態狀態文字 -->
+            <p id="loadingText" class="text-xs text-[#A69F98] font-bold tracking-[0.2em] font-serif">讀取中...</p>
+        </div>
+    </div>
+
+    <script>
+        // ！！！請替換為你的 GAS 網址 ！！！
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzux6h7rNY0MyzcGm3gCLs_m9Zw7JgYisjynJRufPDwsTMlnERizBzEw8WmyplLUeQKjQ/exec";
+        const BASE_DOMAIN = "https://a7c.qzz.io/";
+        const STORAGE_KEY = "a7club_urls";
+
+        window.onload = async () => {
+            let id = null;
+            const searchStr = window.location.search.substring(1);
+            const pathSegments = window.location.pathname.split('/').filter(p => p);
+            const lastSegment = pathSegments[pathSegments.length - 1];
+            
+            if (searchStr) {
+                if (!searchStr.includes('=')) {
+                    id = searchStr;
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    id = urlParams.get('id');
+                }
+            } else if (lastSegment && lastSegment !== 'index.html' && lastSegment !== 'u') {
+                id = lastSegment;
+            }
+
+            if (id) {
+                // 開啟導轉畫面
+                const redirectUI = document.getElementById('redirectUI');
+                redirectUI.classList.remove('hidden');
+                redirectUI.classList.add('flex');
+                
+                // --- 新增：啟動極簡文字動態輪播 ---
+                const loadingTexts = ["正在連線目的地...", "讀取專屬通行證...", "準備開啟新視窗...", "即將抵達..."];
+                let textIndex = 0;
+                const textElement = document.getElementById('loadingText');
+                const textInterval = setInterval(() => {
+                    textIndex = (textIndex + 1) % loadingTexts.length;
+                    textElement.textContent = loadingTexts[textIndex];
+                }, 600); // 每 0.6 秒切換一次文字，增加速度感
+                
+                try {
+                    // 等待 API 回傳長網址
+                    const response = await fetch(`${GAS_API_URL}?id=${id}`);
+                    const result = await response.json();
+                    
+                    clearInterval(textInterval); // 停止文字輪播
+                    
+                    if (result.status === "success" && result.url) {
+                        window.location.replace(result.url); // 自動跳轉
+                    } else {
+                        show404();
+                    }
+                } catch (e) {
+                    clearInterval(textInterval);
+                    show404();
+                }
+            } else {
+                // 沒有 id，進入產生器畫面
+                const generatorUI = document.getElementById('generatorUI');
+                generatorUI.classList.remove('hidden');
+                generatorUI.classList.add('flex');
+                renderHistory(); // 顯示本地快取
+                syncListFromServer(); // 同步雲端資料
+            }
+        };
+
+        function show404() {
+            document.body.innerHTML = `
+                <div class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#FFFDF9] bg-[linear-gradient(#F0EAE1_1px,transparent_1px),linear-gradient(90deg,#F0EAE1_1px,transparent_1px)] [background-size:24px_24px]">
+                    <span class="text-7xl mb-6 opacity-80" style="filter: drop-shadow(0 10px 10px rgba(226, 203, 247, 0.4));">🌧️</span>
+                    <h1 class="text-5xl font-black text-[#E2CBF7] mb-3 font-serif">404</h1>
+                    <p class="text-[#5C5454] mb-8 font-bold bg-white px-6 py-2 rounded-lg shadow-sm border border-[#F0EAE1] font-serif">哎呀！這頁雜誌被撕掉了 🫧</p>
+                    <a href="${BASE_DOMAIN}" class="bg-[#5C5454] text-white px-8 py-3 rounded-xl font-serif font-bold tracking-widest hover:bg-[#FFC2D1] transition-colors shadow-md">返回目錄</a>
+                </div>`;
+        }
+
+        async function fetchTitleFallback(url) {
+            try {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+                const data = await res.json();
+                const match = data.contents.match(/<title[^>]*>([^<]+)<\/title>/i);
+                if (match && match[1]) {
+                    const txt = document.createElement("textarea");
+                    txt.innerHTML = match[1];
+                    return txt.value.trim();
+                }
+            } catch (e) {}
+            try { return new URL(url).hostname; } catch (e) { return url; }
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.addEventListener('click', async () => {
+            const longUrl = document.getElementById('longUrl').value.trim();
+            const tag = document.getElementById('customTag').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (!longUrl) {
+                errorMsg.textContent = "※ 請輸入原始網址哦！";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            errorMsg.classList.add('hidden');
+            submitBtn.disabled = true;
+            document.getElementById('btnText').textContent = "印製與抓取中... 🖨️";
+
+            try {
+                const params = new URLSearchParams();
+                params.append('url', longUrl);
+                params.append('tag', tag);
+
+                const [response, pageTitle] = await Promise.all([
+                    fetch(GAS_API_URL, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: params 
+                    }),
+                    fetchTitleFallback(longUrl)
+                ]);
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    const finalUrl = `${BASE_DOMAIN}${result.tag}`; // 乾淨網址
+                    document.getElementById('shortUrl').value = finalUrl;
+                    document.getElementById('resultArea').classList.remove('hidden');
+                    
+                    saveToHistory(result.tag, finalUrl, longUrl, pageTitle);
+                } else {
+                    errorMsg.textContent = "※ " + (result.message || "發生了一點小錯誤 🥲");
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (e) {
+                errorMsg.textContent = "※ 無法連線，請確認網路狀態哦！";
+                errorMsg.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                document.getElementById('btnText').textContent = "製作專屬通行證 🪄";
+            }
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const input = document.getElementById('shortUrl');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                this.textContent = "OK! ✔️";
+                this.classList.replace('bg-[#E2CBF7]', 'bg-[#BDE0FE]');
+                this.classList.replace('hover:bg-[#d4b5f2]', 'hover:bg-[#a5d2fa]');
+                setTimeout(() => { 
+                    this.textContent = "複製"; 
+                    this.classList.replace('bg-[#BDE0FE]', 'bg-[#E2CBF7]');
+                    this.classList.replace('hover:bg-[#a5d2fa]', 'hover:bg-[#d4b5f2]');
+                }, 2000);
+            } catch (err) { console.error('Copy failed'); }
+        });
+
+        function getHistory() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+
+        function saveToHistory(tag, shortUrl, longUrl, pageTitle) {
+            let history = getHistory();
+            const exists = history.find(item => item.tag === tag);
+            if (!exists) {
+                history.unshift({ tag, shortUrl, longUrl, title: pageTitle, clicks: 0, date: new Date().toLocaleDateString() });
+                if(history.length > 30) history.pop(); 
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const listContainer = document.getElementById('historyList');
+            const emptyState = document.getElementById('emptyHistory');
+            const historyArea = document.getElementById('historyArea');
+
+            if (history.length === 0) {
+                emptyState.classList.remove('hidden');
+                historyArea.classList.remove('hidden');
+                return;
+            }
+
+            historyArea.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+            listContainer.innerHTML = '';
+
+            history.forEach(item => {
+                const li = document.createElement('div');
+                li.className = "history-item p-4 rounded-xl flex items-center justify-between gap-4";
+                li.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[#FFC2D1] text-xs">🔗</span>
+                            <a href="${item.shortUrl}" target="_blank" class="text-sm font-black text-[#5C5454] hover:text-[#BDE0FE] truncate hover:underline font-serif">/${item.tag}</a>
+                            <button class="history-copy-btn text-[#A69F98] hover:text-[#E2CBF7] transition-colors focus:outline-none" title="複製短網址">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
+                            <span class="text-[10px] bg-[#FFFDF9] text-[#A69F98] px-2 py-0.5 rounded border border-[#F0EAE1] ml-1">${item.date}</span>
+                        </div>
+                        <p class="text-xs text-[#A69F98] truncate ml-5" title="${item.longUrl}">${item.title || item.longUrl}</p>
+                    </div>
+                    <div class="flex flex-col items-center justify-center bg-[#FFFDF9] px-3 py-2 rounded-lg min-w-[55px]">
+                        <span class="text-[9px] font-bold text-[#A69F98] tracking-widest uppercase mb-1">Hits</span>
+                        <span class="text-xl font-serif font-black text-[#BDE0FE] leading-none" id="click-count-${item.tag}">${item.clicks || 0}</span>
+                    </div>
+                `;
+                listContainer.appendChild(li);
+
+                const copyHistoryBtn = li.querySelector('.history-copy-btn');
+                copyHistoryBtn.addEventListener('click', function() {
+                    const input = document.createElement('input');
+                    input.value = item.shortUrl;
+                    document.body.appendChild(input);
+                    input.select();
+                    try {
+                        document.execCommand('copy');
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<span class="text-xs text-[#BDE0FE] font-bold">OK!</span>';
+                        this.classList.remove('hover:text-[#E2CBF7]');
+                        setTimeout(() => { 
+                            this.innerHTML = originalHTML; 
+                            this.classList.add('hover:text-[#E2CBF7]');
+                        }, 2000);
+                    } catch (err) {}
+                    document.body.removeChild(input);
+                });
+            });
+        }
+
+        document.getElementById('refreshStatsBtn').addEventListener('click', function() {
+            const btn = this;
+            btn.classList.add('opacity-50', 'pointer-events-none');
+            btn.querySelector('svg').classList.add('animate-spin');
+            syncListFromServer().finally(() => {
+                btn.classList.remove('opacity-50', 'pointer-events-none');
+                btn.querySelector('svg').classList.remove('animate-spin');
+            });
+        });
+
+        // 修改：從雲端抓取全部列表 (加入更友善的畫面防呆提示)
+        async function syncListFromServer() {
+            try {
+                // 加上時間戳，防止瀏覽器快取到舊資料
+                const response = await fetch(`${GAS_API_URL}?action=list&t=${new Date().getTime()}`);
+                const text = await response.text(); 
+                
+                try {
+                    // 嘗試解析 JSON
+                    const result = JSON.parse(text);
+                    if (result.status === "success" && result.data) {
+                        const localHistory = getHistory();
+                        const titleMap = {};
+                        
+                        // 保留本地抓取到的標題，因為雲端只有存長網址
+                        localHistory.forEach(item => { if(item.title) titleMap[item.tag] = item.title; });
+
+                        const serverHistory = result.data.map(item => ({
+                            tag: item.tag,
+                            shortUrl: `${BASE_DOMAIN}${item.tag}`, // 確保沒有 id=
+                            longUrl: item.longUrl,
+                            title: titleMap[item.tag] || item.longUrl,
+                            clicks: item.clicks,
+                            date: item.date
+                        }));
+
+                        // 更新並重新渲染
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverHistory));
+                        renderHistory();
+                    }
+                } catch (parseError) {
+                    console.warn("資料解析失敗！請確認 GAS 是否有『建立新版本』發布。後端回傳：", text);
+                    // 若解析失敗，在畫面上給予友善提示
+                    const emptyState = document.getElementById('emptyHistory');
+                    if (getHistory().length === 0) {
+                        emptyState.innerHTML = `連線雲端資料失敗 🥲<br><span class="text-xs font-normal text-[#A69F98] mt-2 inline-block">請回 GAS 點擊「管理部署作業」>「編輯」<br>將版本改為「建立新版本」後重新部署喔！</span>`;
+                        emptyState.classList.remove('hidden');
+                        document.getElementById('historyArea').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error("連線同步失敗:", error);
+            }
+        }
+    </script>
+</body>
+</html>
