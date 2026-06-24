@@ -5,20 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>柒樂部 | 專屬短網址 reURL</title>
     <meta name="description" content="提供在地住戶推薦的桃園龜山 A7 重劃區生活資訊。">
-    <!-- 加入預先連線，加速 GAS API 讀取速度 -->
     <link rel="preconnect" href="https://script.google.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
-        <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YJ9RJC2DRS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-YJ9RJC2DRS');
-    </script>
-
     <style>
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
@@ -155,29 +144,22 @@
         </div>
     </main>
 
-    <!-- 2. 導轉中 UI (極簡乾淨版，加入前進感) -->
+    <!-- 2. 導轉中 UI -->
     <div id="redirectUI" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-[#FFFDF9]/95 backdrop-blur-md transition-all duration-500">
         <div class="text-center fade-in w-full max-w-xs px-6 relative z-10">
-            
-            <!-- 簡約紙飛機/指南針圖示 -->
             <div class="flex justify-center mb-8">
-                <!-- 將原本帶有紫色的陰影與邊框，改為低飽和的日系灰階 -->
                 <div class="relative w-20 h-20 bg-[#FFFDF9] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(92,84,84,0.06)] border border-[#EBE6E0]">
-                    <!-- 旋轉的柔和灰階光環 -->
                     <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[#A69F98] border-r-[#EAE3D9] animate-spin" style="animation-duration: 1.8s;"></div>
-                    <!-- 中心紙飛機圖示 (無印風低飽和灰) -->
                     <svg class="w-8 h-8 text-[#8C857E] animate-pulse-soft ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 </div>
             </div>
             
             <h2 class="text-xl font-black tracking-widest text-[#5C5454] font-serif mb-3">前往目的地</h2>
             
-            <!-- 優雅的連續漸層進度條 (前進感) -->
             <div class="w-full bg-[#F0EAE1]/50 rounded-full h-1.5 mb-5 overflow-hidden">
                 <div class="h-full w-full rounded-full bg-gradient-to-r from-[#BDE0FE] via-[#FFC2D1] to-[#E2CBF7] animate-gradient-sweep" style="background-size: 200% auto;"></div>
             </div>
 
-            <!-- 動態狀態文字 -->
             <p id="loadingText" class="text-xs text-[#A69F98] font-bold tracking-[0.2em] font-serif">讀取中...</p>
         </div>
     </div>
@@ -190,19 +172,23 @@
 
         window.onload = async () => {
             let id = null;
+            
+            // 解析網址列資訊，增加精準度與 Decode 處理
             const searchStr = window.location.search.substring(1);
             const pathSegments = window.location.pathname.split('/').filter(p => p);
-            const lastSegment = pathSegments[pathSegments.length - 1];
+            const lastSegment = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
             
             if (searchStr) {
+                // 接住 /?points 格式
                 if (!searchStr.includes('=')) {
-                    id = searchStr;
+                    id = decodeURIComponent(searchStr);
                 } else {
                     const urlParams = new URLSearchParams(window.location.search);
                     id = urlParams.get('id');
                 }
-            } else if (lastSegment && lastSegment !== 'index.html' && lastSegment !== 'u') {
-                id = lastSegment;
+            } else if (lastSegment && !lastSegment.endsWith('.html') && lastSegment !== 'u') {
+                // 接住乾淨網址 /points 格式
+                id = decodeURIComponent(lastSegment);
             }
 
             if (id) {
@@ -211,24 +197,23 @@
                 redirectUI.classList.remove('hidden');
                 redirectUI.classList.add('flex');
                 
-                // --- 新增：啟動極簡文字動態輪播 ---
+                // 動態文字輪播
                 const loadingTexts = ["正在連線目的地...", "讀取專屬通行證...", "準備開啟新視窗...", "即將抵達..."];
                 let textIndex = 0;
                 const textElement = document.getElementById('loadingText');
                 const textInterval = setInterval(() => {
                     textIndex = (textIndex + 1) % loadingTexts.length;
                     textElement.textContent = loadingTexts[textIndex];
-                }, 600); // 每 0.6 秒切換一次文字，增加速度感
+                }, 600);
                 
                 try {
-                    // 等待 API 回傳長網址
                     const response = await fetch(`${GAS_API_URL}?id=${id}`);
                     const result = await response.json();
                     
-                    clearInterval(textInterval); // 停止文字輪播
+                    clearInterval(textInterval); 
                     
                     if (result.status === "success" && result.url) {
-                        window.location.replace(result.url); // 自動跳轉
+                        window.location.replace(result.url);
                     } else {
                         show404();
                     }
@@ -241,8 +226,8 @@
                 const generatorUI = document.getElementById('generatorUI');
                 generatorUI.classList.remove('hidden');
                 generatorUI.classList.add('flex');
-                renderHistory(); // 顯示本地快取
-                syncListFromServer(); // 同步雲端資料
+                renderHistory(); 
+                syncListFromServer(); 
             }
         };
 
@@ -420,42 +405,36 @@
             });
         });
 
-        // 修改：從雲端抓取全部列表 (加入更友善的畫面防呆提示)
         async function syncListFromServer() {
             try {
-                // 加上時間戳，防止瀏覽器快取到舊資料
                 const response = await fetch(`${GAS_API_URL}?action=list&t=${new Date().getTime()}`);
                 const text = await response.text(); 
                 
                 try {
-                    // 嘗試解析 JSON
                     const result = JSON.parse(text);
                     if (result.status === "success" && result.data) {
                         const localHistory = getHistory();
                         const titleMap = {};
                         
-                        // 保留本地抓取到的標題，因為雲端只有存長網址
                         localHistory.forEach(item => { if(item.title) titleMap[item.tag] = item.title; });
 
                         const serverHistory = result.data.map(item => ({
                             tag: item.tag,
-                            shortUrl: `${BASE_DOMAIN}${item.tag}`, // 確保沒有 id=
+                            shortUrl: `${BASE_DOMAIN}${item.tag}`,
                             longUrl: item.longUrl,
                             title: titleMap[item.tag] || item.longUrl,
                             clicks: item.clicks,
                             date: item.date
                         }));
 
-                        // 更新並重新渲染
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(serverHistory));
                         renderHistory();
                     }
                 } catch (parseError) {
-                    console.warn("資料解析失敗！請確認 GAS 是否有『建立新版本』發布。後端回傳：", text);
-                    // 若解析失敗，在畫面上給予友善提示
+                    console.warn("資料解析失敗！", text);
                     const emptyState = document.getElementById('emptyHistory');
                     if (getHistory().length === 0) {
-                        emptyState.innerHTML = `連線雲端資料失敗 🥲<br><span class="text-xs font-normal text-[#A69F98] mt-2 inline-block">請回 GAS 點擊「管理部署作業」>「編輯」<br>將版本改為「建立新版本」後重新部署喔！</span>`;
+                        emptyState.innerHTML = `連線雲端資料失敗 🥲<br><span class="text-xs font-normal text-[#A69F98] mt-2 inline-block">請確認 GAS API 設定或重新部署。</span>`;
                         emptyState.classList.remove('hidden');
                         document.getElementById('historyArea').classList.remove('hidden');
                     }
