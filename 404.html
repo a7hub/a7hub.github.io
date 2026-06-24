@@ -8,17 +8,7 @@
     <link rel="preconnect" href="https://script.google.com">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700;900&display=swap" rel="stylesheet">
-        <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YJ9RJC2DRS"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-YJ9RJC2DRS');
-    </script>
-
-  <style>
+    <style>
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
             /* 日系雜誌/手帳的柔和網格背景 */
@@ -154,28 +144,22 @@
         </div>
     </main>
 
-    <!-- 2. 導轉中 UI (極簡乾淨版，加入前進感) -->
+    <!-- 2. 導轉中 UI -->
     <div id="redirectUI" class="fixed inset-0 z-50 hidden flex-col items-center justify-center bg-[#FFFDF9]/95 backdrop-blur-md transition-all duration-500">
         <div class="text-center fade-in w-full max-w-xs px-6 relative z-10">
-            
-            <!-- 簡約紙飛機/指南針圖示 -->
             <div class="flex justify-center mb-8">
                 <div class="relative w-20 h-20 bg-[#FFFDF9] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(92,84,84,0.06)] border border-[#EBE6E0]">
-                    <!-- 旋轉的柔和灰階光環 -->
                     <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[#A69F98] border-r-[#EAE3D9] animate-spin" style="animation-duration: 1.8s;"></div>
-                    <!-- 中心紙飛機圖示 (無印風低飽和灰) -->
                     <svg class="w-8 h-8 text-[#8C857E] animate-pulse-soft ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 </div>
             </div>
             
             <h2 class="text-xl font-black tracking-widest text-[#5C5454] font-serif mb-3">前往目的地</h2>
             
-            <!-- 優雅的連續漸層進度條 (前進感) -->
             <div class="w-full bg-[#F0EAE1]/50 rounded-full h-1.5 mb-5 overflow-hidden">
                 <div class="h-full w-full rounded-full bg-gradient-to-r from-[#BDE0FE] via-[#FFC2D1] to-[#E2CBF7] animate-gradient-sweep" style="background-size: 200% auto;"></div>
             </div>
 
-            <!-- 動態狀態文字 -->
             <p id="loadingText" class="text-xs text-[#A69F98] font-bold tracking-[0.2em] font-serif">讀取中...</p>
         </div>
     </div>
@@ -188,22 +172,23 @@
 
         window.onload = async () => {
             let id = null;
-            // 讀取 ? 後面的參數 (例如 ?points)
+            
+            // 解析網址列資訊，增加精準度與 Decode 處理
             const searchStr = window.location.search.substring(1);
-            // 讀取 / 後面的路徑 (例如 /points)
             const pathSegments = window.location.pathname.split('/').filter(p => p);
-            const lastSegment = pathSegments[pathSegments.length - 1];
+            const lastSegment = pathSegments.length > 0 ? pathSegments[pathSegments.length - 1] : null;
             
             if (searchStr) {
+                // 接住 /?points 格式
                 if (!searchStr.includes('=')) {
-                    id = searchStr;
+                    id = decodeURIComponent(searchStr);
                 } else {
                     const urlParams = new URLSearchParams(window.location.search);
                     id = urlParams.get('id');
                 }
-            } else if (lastSegment && lastSegment !== 'index.html' && lastSegment !== 'u') {
-                // 接住像 a7c.qzz.io/points 這種純路徑網址
-                id = lastSegment;
+            } else if (lastSegment && !lastSegment.endsWith('.html') && lastSegment !== 'u') {
+                // 接住乾淨網址 /points 格式
+                id = decodeURIComponent(lastSegment);
             }
 
             if (id) {
@@ -212,7 +197,7 @@
                 redirectUI.classList.remove('hidden');
                 redirectUI.classList.add('flex');
                 
-                // 啟動極簡文字動態輪播
+                // 動態文字輪播
                 const loadingTexts = ["正在連線目的地...", "讀取專屬通行證...", "準備開啟新視窗...", "即將抵達..."];
                 let textIndex = 0;
                 const textElement = document.getElementById('loadingText');
