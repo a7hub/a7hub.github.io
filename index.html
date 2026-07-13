@@ -139,7 +139,7 @@
                     更新
                 </button>
             </h2>
-            <div id="historyList" class="space-y-4 max-h-[300px] overflow-y-auto pr-2"></div>
+            <div id="historyList" class="space-y-4 max-h-[400px] overflow-y-auto pr-2"></div>
             <div id="emptyHistory" class="text-center py-8 text-[#A69F98] text-sm font-bold font-serif">尚未收藏任何網址哦 🫧</div>
         </div>
     </main>
@@ -353,23 +353,39 @@
             listContainer.innerHTML = '';
 
             history.forEach(item => {
+                // 安全解析 hostname 供備用圖示使用
+                let hostname = item.longUrl;
+                try { hostname = new URL(item.longUrl).hostname; } catch(e){}
+
                 const li = document.createElement('div');
-                li.className = "history-item p-4 rounded-xl flex items-center justify-between gap-4";
+                li.className = "history-item p-3 sm:p-4 rounded-xl flex items-center justify-between gap-3 sm:gap-4";
                 li.innerHTML = `
-                    <div class="flex-1 min-w-0">
+                    <!-- 網頁預覽縮圖 (優先顯示網頁截圖，失敗則優雅降級顯示網站 Favicon Logo) -->
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 border border-[#F0EAE1] bg-[#FFFDF9] relative group flex items-center justify-center">
+                        <img src="https://image.thum.io/get/width/150/crop/150/${item.longUrl}" 
+                             alt="預覽圖"
+                             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                             onerror="this.onerror=null; this.src='https://www.google.com/s2/favicons?domain=${hostname}&sz=128'; this.classList.remove('object-cover'); this.classList.add('object-contain', 'p-2');">
+                    </div>
+
+                    <div class="flex-1 min-w-0 flex flex-col justify-center">
                         <div class="flex items-center gap-2 mb-1">
                             <span class="text-[#FFC2D1] text-xs">🔗</span>
                             <a href="${item.shortUrl}" target="_blank" class="text-sm font-black text-[#5C5454] hover:text-[#BDE0FE] truncate hover:underline font-serif">?${item.tag}</a>
                             <button class="history-copy-btn text-[#A69F98] hover:text-[#E2CBF7] transition-colors focus:outline-none" title="複製短網址">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                             </button>
-                            <span class="text-[10px] bg-[#FFFDF9] text-[#A69F98] px-2 py-0.5 rounded border border-[#F0EAE1] ml-1">${item.date}</span>
+                            <span class="text-[9px] bg-[#FFFDF9] text-[#A69F98] px-2 py-0.5 rounded border border-[#F0EAE1] ml-auto shrink-0 hidden sm:inline-block">${item.date}</span>
                         </div>
-                        <p class="text-xs text-[#A69F98] truncate ml-5" title="${item.longUrl}">${item.title || item.longUrl}</p>
+                        
+                        <!-- 標題與原始網址排版優化 -->
+                        <p class="text-xs sm:text-sm text-[#8C857E] font-bold truncate mb-0.5" title="${item.title || item.longUrl}">${item.title || item.longUrl}</p>
+                        <p class="text-[9px] sm:text-[10px] text-[#A69F98] truncate opacity-80" title="${item.longUrl}">${item.longUrl}</p>
                     </div>
-                    <div class="flex flex-col items-center justify-center bg-[#FFFDF9] px-3 py-2 rounded-lg min-w-[55px]">
+
+                    <div class="flex flex-col items-center justify-center bg-[#FFFDF9] px-2 sm:px-3 py-2 rounded-lg min-w-[50px] sm:min-w-[55px] shrink-0 border border-[#F0EAE1]">
                         <span class="text-[9px] font-bold text-[#A69F98] tracking-widest uppercase mb-1">Hits</span>
-                        <span class="text-xl font-serif font-black text-[#BDE0FE] leading-none" id="click-count-${item.tag}">${item.clicks || 0}</span>
+                        <span class="text-lg sm:text-xl font-serif font-black text-[#BDE0FE] leading-none" id="click-count-${item.tag}">${item.clicks || 0}</span>
                     </div>
                 `;
                 listContainer.appendChild(li);
